@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Matrix Generator</title>
+
+  <!-- Office JS — loaded from CDN at first use, cached by the webview after that -->
+  <script src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+  <!-- bwip-js bundled locally — 100% offline barcode engine -->
+  <script src="/assets/bwip-js.min.js"></script>
+
+  <!-- Register the Service Worker for Offline PWA support -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => console.log('✅ Offline Engine (Service Worker) registered successfully.'))
+          .catch(err => console.error('❌ Service Worker registration failed:', err));
+      });
+    }
+  </script>
+
+  <link rel="stylesheet" href="taskpane.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ─── HEADER ─── -->
+  <header class="header">
+    <div class="header-icon">⬛</div>
+    <div>
+      <h1 class="header-title">Data Matrix</h1>
+      <p class="header-sub">ECC 200 · Offline Generator</p>
+    </div>
+  </header>
+
+  <!-- ─── TABS ─── -->
+  <div class="tabs">
+    <button class="tab active" data-tab="single" id="tab-single">Single</button>
+    <button class="tab" data-tab="live" id="tab-live">Live Sync</button>
+    <button class="tab" data-tab="batch" id="tab-batch">Batch</button>
+    <button class="tab" data-tab="ansi" id="tab-ansi">ANSI</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB: SINGLE
+  ══════════════════════════════════════ -->
+  <div class="tab-content active" id="panel-single">
+
+    <div class="section">
+      <label class="label" for="single-input">Data to Encode</label>
+      <textarea id="single-input" class="input-area" rows="3"
+                placeholder="Type text, numbers, or paste ANSI data…"></textarea>
+    </div>
+
+    <div class="section row">
+      <div class="field">
+        <label class="label" for="matrix-size">Symbol Size</label>
+        <select id="matrix-size" class="select">
+          <option value="auto">Auto (smallest fit)</option>
+          <option value="10x10">10×10 (3 chars)</option>
+          <option value="12x12">12×12 (5 chars)</option>
+          <option value="14x14">14×14 (8 chars)</option>
+          <option value="16x16">16×16 (12 chars)</option>
+          <option value="18x18">18×18 (18 chars)</option>
+          <option value="20x20">20×20 (22 chars)</option>
+          <option value="22x22">22×22 (30 chars)</option>
+          <option value="24x24">24×24 (36 chars)</option>
+          <option value="32x32">32×32 (72 chars)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="label" for="px-size">Cell Size (px)</label>
+        <input id="px-size" class="input" type="number" value="5" min="2" max="20" />
+      </div>
+    </div>
+
+    <!-- Live Preview -->
+    <div class="preview-wrap">
+      <canvas id="preview-canvas"></canvas>
+      <div id="preview-error" class="preview-error hidden"></div>
+    </div>
+
+    <div class="section row">
+      <div class="field">
+        <label class="label" for="inject-size">Inject Size (pt)</label>
+        <input id="inject-size" class="input" type="number" value="80" min="20" max="500" />
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-inject-single">
+      <span>⬛ Inject into Sheet</span>
+    </button>
+
+    <div id="status-single" class="status hidden"></div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB: LIVE SYNC
+  ══════════════════════════════════════ -->
+  <div class="tab-content" id="panel-live">
+
+    <div class="section">
+      <p class="hint">Bind barcodes dynamically to cells or named ranges. When the source data changes, the barcode instantly updates and snaps inside the target cell.</p>
+    </div>
+
+    <!-- Rule Builder -->
+    <div class="section row" style="align-items: flex-end;">
+      <div class="field" style="display:flex; gap: 4px;">
+        <div style="flex:1;">
+          <label class="label" for="live-source">Source Name/Range</label>
+          <input id="live-source" class="input" type="text" placeholder="e.g. Data_Range" />
+        </div>
+        <button class="btn-secondary" id="btn-pick-source" style="width:28px; padding:0; height:32px; margin-top:20px;" title="Use current selection">📍</button>
+      </div>
+      <div class="field" style="display:flex; gap: 4px;">
+        <div style="flex:1;">
+          <label class="label" for="live-target">Target Cell</label>
+          <input id="live-target" class="input" type="text" placeholder="e.g. Barcode_Out" />
+        </div>
+        <button class="btn-secondary" id="btn-pick-target" style="width:28px; padding:0; height:32px; margin-top:20px;" title="Use current selection">📍</button>
+      </div>
+      <button class="btn-primary" id="btn-add-rule" style="width: auto; padding: 11px 12px; margin-bottom: 0;">+</button>
+    </div>
+
+    <div class="section">
+      <label class="label">Active Rules</label>
+      <div id="rules-list" class="rules-list">
+        <!-- Rules injected here -->
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-toggle-sync">
+      <span id="sync-icon">▶</span> <span id="sync-text">Start Live Engine</span>
+    </button>
+    <div id="status-live" class="status hidden"></div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB: BATCH
+  ══════════════════════════════════════ -->
+  <div class="tab-content" id="panel-batch">
+
+    <div class="section">
+      <p class="hint">Select a column of cells containing your data. Each row will get a barcode stamped in the adjacent column.</p>
+    </div>
+
+    <div class="section row">
+      <div class="field">
+        <label class="label" for="batch-size">Inject Size (pt)</label>
+        <input id="batch-size" class="input" type="number" value="60" min="20" max="300" />
+      </div>
+      <div class="field">
+        <label class="label" for="batch-col-offset">Output Column Offset</label>
+        <input id="batch-col-offset" class="input" type="number" value="1" min="1" max="10" />
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-inject-batch">
+      <span>⬛ Batch Generate from Selection</span>
+    </button>
+    <div id="batch-progress" class="progress-wrap hidden">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <p id="progress-label" class="progress-label">0 / 0</p>
+    </div>
+    <div id="status-batch" class="status hidden"></div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB: ANSI BUILDER
+  ══════════════════════════════════════ -->
+  <div class="tab-content" id="panel-ansi">
+
+    <div class="section">
+      <p class="hint">Toggle ANSI MH10.8.2-2016 identifiers to build a structured data string automatically.</p>
+    </div>
+
+    <div id="ansi-fields" class="ansi-fields"></div>
+
+    <div class="section">
+      <label class="label">Assembled String</label>
+      <div class="assembled-string" id="assembled-string">
+        <code id="assembled-code">—</code>
+      </div>
+      <button class="btn-secondary" id="btn-ansi-copy">Copy to Single Tab</button>
+    </div>
+
+  </div>
+
+</div><!-- .app -->
+
+<script src="taskpane.js"></script>
+</body>
+</html>

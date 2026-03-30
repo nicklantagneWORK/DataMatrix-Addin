@@ -1,0 +1,15 @@
+{
+  "name": "datamatrix-excel-addin",
+  "version": "1.0.0",
+  "description": "Offline Data Matrix ECC 200 barcode generator for Excel",
+  "scripts": {
+    "start": "node server.js",
+    "install-cert": "npx office-addin-dev-certs install"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "office-addin-dev-certs": "^1.10.0"
+  }
+}
