@@ -2,14 +2,14 @@ const CACHE_NAME = 'datamatrix-offline-v1';
 
 // All the files needed for the Add-in to run completely standalone
 const ASSETS_TO_CACHE = [
-  '/',
-  '/src/taskpane/taskpane.html',
-  '/src/taskpane/taskpane.css',
-  '/src/taskpane/taskpane.js',
-  '/assets/bwip-js.min.js',
-  '/assets/icon-16.png',
-  '/assets/icon-32.png',
-  '/assets/icon-80.png',
+  'https://nicklantagnework.github.io/DataMatrix-Addin/',
+  'https://nicklantagnework.github.io/DataMatrix-Addin/src/taskpane/taskpane.html',
+  'https://nicklantagnework.github.io/DataMatrix-Addin/src/taskpane/taskpane.css',
+  'https://nicklantagnework.github.io/DataMatrix-Addin/src/taskpane/taskpane.js',
+  'https://nicklantagnework.github.io/DataMatrix-Addin/assets/bwip-js.min.js',
+  'https://nicklantagnework.github.io/DataMatrix-Addin/assets/icon-16.png',
+  'https://nicklantagnework.github.io/DataMatrix-Addin/assets/icon-32.png',
+  'https://nicklantagnework.github.io/DataMatrix-Addin/assets/icon-80.png',
   // Office JS fallback cache (though Office JS usually caches itself)
   'https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js'
 ];

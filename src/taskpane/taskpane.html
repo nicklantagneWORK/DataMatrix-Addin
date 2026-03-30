@@ -9,13 +9,13 @@
   <script src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 
   <!-- bwip-js bundled locally — 100% offline barcode engine -->
-  <script src="/assets/bwip-js.min.js"></script>
+  <script src="https://nicklantagnework.github.io/DataMatrix-Addin/assets/bwip-js.min.js"></script>
 
   <!-- Register the Service Worker for Offline PWA support -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
+        navigator.serviceWorker.register('https://nicklantagnework.github.io/DataMatrix-Addin/service-worker.js')
           .then(reg => console.log('✅ Offline Engine (Service Worker) registered successfully.'))
           .catch(err => console.error('❌ Service Worker registration failed:', err));
       });
