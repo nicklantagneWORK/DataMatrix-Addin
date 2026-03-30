@@ -272,7 +272,11 @@ function generateDataMatrixBase64(text, sizeKey, scale) {
       // Strip the "data:image/png;base64," prefix
       resolve(canvas.toDataURL('image/png').split(',')[1]);
     } catch (e) {
-      reject(new Error(e.message || 'bwip-js encoding error'));
+      let msg = e.message || 'bwip-js encoding error';
+      if (msg.includes('datamatrixNoValidSymbol') || msg.includes('Maximum length exceeded')) {
+        msg = 'Data string is too long for the chosen Symbol Size. Please select a larger size or use "Auto".';
+      }
+      reject(new Error(msg));
     }
   });
 }
@@ -296,7 +300,11 @@ function renderPreview(canvasEl, errEl, text, sizeKey, scale) {
     bwipjs.toCanvas(canvasEl, opts);
     errEl.classList.add('hidden');
   } catch (e) {
-    errEl.textContent = '⚠ ' + (e.message || 'Encoding error');
+    let msg = e.message || 'Encoding error';
+    if (msg.includes('datamatrixNoValidSymbol') || msg.includes('Maximum length exceeded')) {
+      msg = 'Data string is too long for the chosen Symbol Size. Please select a larger size or use "Auto".';
+    }
+    errEl.textContent = '⚠ ' + msg;
     errEl.classList.remove('hidden');
     const ctx = canvasEl.getContext('2d');
     ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
