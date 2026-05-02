@@ -131,26 +131,38 @@ function initBatchTab() {
 
         showStatus('status-batch', 'info', `Generating ${total} barcode(s)…`);
 
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        
+        // Load all target cells in one batch
+        const targetCells = [];
         for (let i = 0; i < total; i++) {
-          const text = String(values[i][0]).trim();
-          if (!text) continue;
+          const cell = sheet.getRangeByIndexes(startRow + i, startCol + offset, 1, 1);
+          cell.load(['left', 'top']);
+          targetCells.push(cell);
+        }
+        await context.sync(); // Resolve all layout queries at once
+
+        for (let i = 0; i < total; i++) {
+          const text = String(values[i][0] || '').trim();
+          if (!text || text === 'null' || text === 'undefined') {
+            // Update progress even if skipping
+            const pct = Math.round(((i + 1) / total) * 100);
+            progressFill.style.width = pct + '%';
+            progressLbl.textContent  = `${i + 1} / ${total}`;
+            continue;
+          }
 
           try {
             const base64 = await generateDataMatrixBase64(text, 'auto', 4);
-            const sheet  = context.workbook.worksheets.getActiveWorksheet();
-
-            // Compute pixel position of the target cell
-            const targetCell = sheet.getRangeByIndexes(startRow + i, startCol + offset, 1, 1);
-            targetCell.load(['left', 'top']);
-            await context.sync();
-
             const shape = sheet.shapes.addImage(base64);
-            shape.left   = targetCell.left;
-            shape.top    = targetCell.top;
+            
+            // Snap to the target cell's top-left corner
+            shape.left   = targetCells[i].left;
+            shape.top    = targetCells[i].top;
             shape.height = ptSize;
             shape.width  = ptSize;
+            shape.placement = Excel.Placement.twoCell; // Lock to cells
             shape.name   = `DM_${i}_${Date.now()}`;
-            await context.sync();
           } catch (rowErr) {
             console.warn(`Row ${i} failed: ${rowErr.message}`);
           }
@@ -159,9 +171,14 @@ function initBatchTab() {
           const pct = Math.round(((i + 1) / total) * 100);
           progressFill.style.width = pct + '%';
           progressLbl.textContent  = `${i + 1} / ${total}`;
+
+          // Yield to UI loop occasionally so the browser doesn't lock up on huge batches
+          if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
         }
 
-        showStatus('status-batch', 'success', `✓ ${total} barcode(s) injected!`);
+        await context.sync(); // Commit all shape placements at once
+
+        showStatus('status-batch', 'success', `✓ ${total} barcode(s) processed!`);
       });
     } catch (err) {
       showStatus('status-batch', 'error', '✗ ' + err.message);
